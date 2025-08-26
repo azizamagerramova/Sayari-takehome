@@ -36,7 +36,9 @@ const TransactionTable = () => {
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
   // Sorting State - default to transaction count descending
-  const [sortBy, setSortBy] = useState<"name" | "industry" | "totalTransactions">("totalTransactions");
+  const [sortBy, setSortBy] = useState<
+    "name" | "industry" | "totalTransactions"
+  >("totalTransactions");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc");
 
   // Function to fetch business data and transaction counts
@@ -47,36 +49,43 @@ const TransactionTable = () => {
         setLoading(true);
       }
       // Fetch businesses
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
       const response = await fetch(`${apiUrl}/api/businesses`);
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const result = await response.json();
       const businesses = result.data || [];
-      
+
       // Fetch transaction counts for each business
-      const countsMap: {[key: string]: number} = {};
+      const countsMap: { [key: string]: number } = {};
       for (const business of businesses) {
         try {
           const countResponse = await fetch(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/businesses/${business.business_id}/transaction-count`
+            `${
+              import.meta.env.VITE_API_URL || "http://localhost:3000"
+            }/api/businesses/${business.business_id}/transaction-count`
           );
           if (countResponse.ok) {
             const countData = await countResponse.json();
-            countsMap[business.business_id] = countData.transactionCount || 0;
+
+            countsMap[business.business_id] =
+              countData.data.transactionCount || 0; // Fixed  a bug here countData.transactionCount wasn't getting the transaction count
           }
         } catch (err) {
-          console.error(`Failed to fetch transaction count for ${business.name}:`, err);
+          console.error(
+            `Failed to fetch transaction count for ${business.name}:`,
+            err
+          );
         }
       }
-      
+
       // Combine business data with transaction counts
       const enrichedBusinesses = businesses.map((business: Business) => ({
         ...business,
-        totalTransactions: countsMap[business.business_id] || 0
+        totalTransactions: countsMap[business.business_id] || 0,
       }));
-      
+
       setBusinessData(enrichedBusinesses);
       return true;
     } catch (err: unknown) {
@@ -99,62 +108,55 @@ const TransactionTable = () => {
 
     // Function to find business ID from either direct ID or node data
     const getBusinessId = (idOrObj: any): string | null => {
-      if (typeof idOrObj === 'string') return idOrObj;
+      if (typeof idOrObj === "string") return idOrObj;
       if (idOrObj && idOrObj.id) return idOrObj.id;
       return null;
     };
 
     // Define event handlers
-    const handleGraphUpdate = async (data: { 
-      nodes?: GraphNode[], 
-      newTransaction?: { 
-        from: string | { id: string }, 
-        to: string | { id: string },
-        amount: number,
-        timestamp: string
-      } 
+    const handleGraphUpdate = async (data: {
+      nodes?: GraphNode[];
+      newTransaction?: {
+        from: string | { id: string };
+        to: string | { id: string };
+        amount: number;
+        timestamp: string;
+      };
     }) => {
       if (data && data.newTransaction) {
         const transaction = data.newTransaction;
-        
-        // Extract business IDs
         const fromId = getBusinessId(transaction.from);
         const toId = getBusinessId(transaction.to);
 
         if (!fromId) {
-          console.error("Could not determine source business ID from transaction", transaction);
+          console.error(
+            "Could not determine source business ID from transaction",
+            transaction
+          );
           return;
         }
 
-        console.log(`New transaction from ${fromId} to ${toId || 'unknown'} for ${transaction.amount}`);
-        
-        // Node data is available but not currently used
-        // Could be used in future for additional enrichment
-        
-        // Update business data with new counts
-        setBusinessData(prevBusinessData => {
-          const updatedBusinessData = prevBusinessData.map(business => {
-            // Increment count for the "from" business
-            if (business.business_id === fromId) {
-              // Mark this business as updated for highlighting
+        console.log(
+          `New transaction from ${fromId} to ${toId || "unknown"} for ${
+            transaction.amount
+          }`
+        );
+
+        let updatedBusiness: Business | null = null;
+
+        setBusinessData((prevBusinessData) => {
+          const updatedBusinessData = prevBusinessData.map((business) => {
+            if (business.name === fromId || business.name === toId) {
               setNewBusiness(business);
               setTimeout(() => setNewBusiness(null), 3000);
-              
+              // fixed a bug: we are using business name and not business id in notifications socket
               return {
                 ...business,
-                totalTransactions: (business.totalTransactions || 0) + 1
-              };
-            }
-            // Also increment count for the "to" business
-            if (toId && business.business_id === toId) {
-              return {
-                ...business,
-                totalTransactions: (business.totalTransactions || 0) + 1
+                totalTransactions: (business.totalTransactions || 0) + 1,
               };
             }
             return business;
           });
-          
           return updatedBusinessData;
         });
       }
@@ -167,23 +169,23 @@ const TransactionTable = () => {
     };
 
     // Register event listeners
-    socket.on('graphUpdate', handleGraphUpdate);
-    socket.on('initialData', handleInitialData);
-
+    socket.on("graphUpdate", handleGraphUpdate);
+    socket.on("initialData", handleInitialData);
     // Cleanup: remove event listeners on unmount
     return () => {
-      socket.off('graphUpdate', handleGraphUpdate);
-      socket.off('initialData', handleInitialData);
+      socket.off("graphUpdate", handleGraphUpdate);
+      socket.off("initialData", handleInitialData);
     };
   }, []);
-
 
   // Handle pagination changes
   const handleChangePage = (_event: unknown, newPage: number) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0); // Reset to first page
   };
@@ -212,8 +214,8 @@ const TransactionTable = () => {
 
     return 0;
   });
-
   // Paginated data
+
   const paginatedData = sortedData.slice(
     page * rowsPerPage,
     page * rowsPerPage + rowsPerPage
@@ -224,7 +226,6 @@ const TransactionTable = () => {
 
   return (
     <div style={{ position: "relative" }}>
-      {/* Table Section */}
       <TableContainer component={Paper}>
         <Table aria-label="Transaction Summary Table">
           <TableHead>
@@ -252,7 +253,7 @@ const TransactionTable = () => {
                   active={sortBy === "totalTransactions"}
                   direction={sortDirection}
                   onClick={() => handleSort("totalTransactions")}
-                  sx={{ '& .MuiTableSortLabel-icon': { opacity: 1 } }}
+                  sx={{ "& .MuiTableSortLabel-icon": { opacity: 1 } }}
                 >
                   <b>Total Transactions</b>
                 </TableSortLabel>
@@ -262,16 +263,22 @@ const TransactionTable = () => {
           <TableBody>
             {paginatedData.map((row, index) => {
               // Check if this is the updated business that was just involved in a transaction
-              const isUpdatedBusiness = newBusiness && newBusiness.business_id === row.business_id;
-                
+
+              const isUpdatedBusiness =
+                newBusiness && newBusiness.business_id === row.business_id;
+
               return (
-                <TableRow 
+                <TableRow
                   key={row.business_id || index}
-                  className={isUpdatedBusiness ? 'new-transaction-row' : ''}
-                  sx={isUpdatedBusiness ? { 
-                    backgroundColor: 'rgba(0, 191, 255, 0.1)',
-                    transition: 'background-color 3s ease-out'
-                  } : {}}
+                  className={isUpdatedBusiness ? "new-transaction-row" : ""}
+                  sx={
+                    isUpdatedBusiness
+                      ? {
+                          backgroundColor: "rgba(0, 191, 255, 0.1)",
+                          transition: "background-color 3s ease-out",
+                        }
+                      : {}
+                  }
                 >
                   <TableCell>{row.name}</TableCell>
                   <TableCell>{row.industry}</TableCell>
@@ -282,7 +289,6 @@ const TransactionTable = () => {
           </TableBody>
         </Table>
       </TableContainer>
-
       {/* Pagination */}
       <TablePagination
         rowsPerPageOptions={[5, 10, 25]}
