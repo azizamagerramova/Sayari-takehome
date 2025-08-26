@@ -70,7 +70,6 @@ const TransactionDetailsTable = () => {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         const result = await response.json();
-        console.log("result ", result);
         setData(result.data);
       } catch (err: unknown) {
         setError((err as Error).message);
