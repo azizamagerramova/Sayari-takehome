@@ -23,15 +23,16 @@ These additions were designed to be minimal, consistent with existing endpoints,
 
 ---
 
-## Endpoints overview
+## Endpoints Overview
 
 | Method | Path | Purpose | Request Body | Response |
-| -------- | ------------------------------------------------------ | --------------------------------------------------------------- | --------------------------------- | --------------------------------------------------------------- | |
-| **POST** | `/api/transactions/generate-mock-transactions` | **One‑shot**: generate _N_ mock transactions (parallel) | `{ numTransactions: number }` | `201 { success, data: Transaction[] }` |
+| ------ | --------------------------------------------- | ---------------------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
+| **POST** | `/api/transactions/generate-mock-transactions` | **One-shot**: generate _N_ mock transactions (in parallel) | `{ numTransactions: number }` | `201 { success, data: Transaction[] }` |
 | **POST** | `/api/transactions/start-generating-mock-transactions` | **Continuous**: every `RATE_SECONDS`, generate _N_ transactions | `{ numTransactions: number }` | `201 { success, message, intervalSeconds, numTransactions }` |
 | **POST** | `/api/transactions/stop-generating-mock-transactions` | Stop continuous generation | – | `200 { success, message }` |
 
-**Response shape consistency:** all endpoints return `{ success, ... }`; creation endpoints return `201`.
+> **Note:** All endpoints return an object with `{ success, ... }
+
 
 ---
 
@@ -44,7 +45,7 @@ These additions were designed to be minimal, consistent with existing endpoints,
   {
     "from": "<business_id>",
     "to": "<business_id>",
-    "amount": 100–10000,
+    "amount": 10000,
     "timestamp": "ISO 8601"
   }
   ```
