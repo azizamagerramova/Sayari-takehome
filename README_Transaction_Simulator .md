@@ -1,4 +1,4 @@
-# Take‑Home Info Guide
+# Transaction Simulator Info Guide
 
 This document explains the additions I made to the codebase, how to run them, and how they fit into the existing architecture.
 
